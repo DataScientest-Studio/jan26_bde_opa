@@ -1,7 +1,7 @@
-Project Name
+OPA - CryptoBot
 ==============================
 
-This project is a starting Pack for MLOps projects based on the subject "movie_recommandation". It's not perfect so feel free to make some modifications on it.
+Le but principal de ce projet est de créer un bot de trading basé sur un modèle de Machine Learning et qui investira sur des marchés crypto.
 
 Project Organization
 ------------
