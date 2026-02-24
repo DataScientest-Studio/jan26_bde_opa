@@ -8,7 +8,7 @@ def get_mongo_client():
     """
     Retourne un client MongoDB.
     """
-    mongo_uri = os.getenv("MONGO_URI", "mongodb://localhost:27017/")
+    mongo_uri = os.getenv("MONGO_URI", "mongodb://localhost:27017/") #Donc si MONGO_URI n’est pas défini dans ton .env, il utilise : mongodb://localhost:27017/
     return MongoClient(mongo_uri)
 
 
@@ -26,6 +26,11 @@ def test_connection():
     except Exception as e:
         print("Erreur connexion MongoDB ❌", e)
 
+def insert_data(collection, data):
+    if isinstance(data, list):
+        collection.insert_many(data)
+    else:
+        collection.insert_one(data)
 
 if __name__ == "__main__":
     test_connection()
