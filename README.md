@@ -14,6 +14,8 @@ Project Organization
     │   ├── processed      <- The final, canonical data sets for modeling.
     │   └── raw            <- The original, immutable data dump.
     │
+    ├── images             <- graphics, architecture diagrams or other project related images.
+    │
     ├── logs               <- Logs from training and predicting
     │
     ├── models             <- Trained and serialized models, model predictions, or model summaries
@@ -49,5 +51,9 @@ Project Organization
     │   └── config         <- Describe the parameters used in train_model.py and predict_model.py
 
 --------
+
+Project Architecture
+------------
+
 
 <p><small>Project based on the <a target="_blank" href="https://drivendata.github.io/cookiecutter-data-science/">cookiecutter data science project template</a>. #cookiecutterdatascience</small></p>
