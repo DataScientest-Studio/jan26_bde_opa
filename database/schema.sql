@@ -1,14 +1,16 @@
-CREATE TABLE candles (
-  id BIGSERIAL PRIMARY KEY,
-  symbol TEXT NOT NULL,
-  interval TEXT NOT NULL,
-  open_time TIMESTAMPTZ NOT NULL,
-  close_time TIMESTAMPTZ,
-  open NUMERIC(18,8) NOT NULL,
-  high NUMERIC(18,8) NOT NULL,
-  low NUMERIC(18,8) NOT NULL,
-  close NUMERIC(18,8) NOT NULL,
-  volume NUMERIC(28,10) NOT NULL,
-  UNIQUE(symbol, interval, open_time)
-);
+DROP TABLE IF EXISTS candles;
 
+CREATE TABLE candles (
+    symbol TEXT NOT NULL,
+    interval TEXT NOT NULL,
+    open_time BIGINT NOT NULL,
+    open DOUBLE PRECISION NOT NULL,
+    high DOUBLE PRECISION NOT NULL,
+    low DOUBLE PRECISION NOT NULL,
+    close DOUBLE PRECISION NOT NULL,
+    volume DOUBLE PRECISION NOT NULL,
+    close_time BIGINT NOT NULL,
+    number_of_trades INTEGER,
+    ingested_at BIGINT,
+    PRIMARY KEY (symbol, interval, open_time)
+);

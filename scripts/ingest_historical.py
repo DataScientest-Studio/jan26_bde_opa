@@ -1,69 +1,55 @@
-from dotenv import load_dotenv
-load_dotenv()
-
 import time
-from datetime import datetime, timezone
+from pymongo import UpdateOne
+from src.storage.mongo import get_database, ensure_raw_klines_indexes
+from src.collectors.binance_collector import get_klines, klines_to_docs
 
-from src.collectors.binance_collector import get_klines
-from src.storage.mongo import get_database
-
-
-def to_ms(dt: datetime) -> int:
-    return int(dt.replace(tzinfo=timezone.utc).timestamp() * 1000)
-
-
-def ingest(symbol="BTCUSDT", interval="1h"):
+def ingest_history(symbol: str, interval: str, start_time_ms: int, end_time_ms: int | None = None):
     db = get_database()
-    collection = db["raw_binance_klines"]
+    col = ensure_raw_klines_indexes(db)
 
-    start_dt = datetime(2024, 1, 1)
-    end_dt = datetime(2024, 2, 1)
+    total_fetched = 0
+    total_upserted = 0
+    cursor_start = start_time_ms
 
-    start_ms = to_ms(start_dt)
-    end_ms = to_ms(end_dt)
-
-    cursor = start_ms
-    total = 0
-
-    print("📥 Début ingestion historique...")
-
-    while cursor < end_ms:
-        candles = get_klines(
+    while True:
+        raw = get_klines(
             symbol=symbol,
             interval=interval,
-            start_time_ms=cursor,
-            end_time_ms=end_ms,
-            limit=1000,
+            start_time_ms=cursor_start,
+            end_time_ms=end_time_ms,
+            limit=1000
         )
-
-        if not candles:
+        if not raw:
+            print("No more data. Stop.")
             break
 
-        docs = []
-        for c in candles:
-            docs.append({
-                "symbol": symbol,
-                "interval": interval,
-                "open_time": c[0],
-                "open": float(c[1]),
-                "high": float(c[2]),
-                "low": float(c[3]),
-                "close": float(c[4]),
-                "volume": float(c[5]),
-                "close_time": c[6],
-                "number_of_trades": c[8],
-                "ingested_at": int(time.time() * 1000),
-            })
+        docs = klines_to_docs(symbol, interval, raw)
+        total_fetched += len(docs)
 
-        collection.insert_many(docs, ordered=False)
-        total += len(docs)
+        ops = [
+            UpdateOne(
+                {"symbol": d["symbol"], "interval": d["interval"], "open_time": d["open_time"]},
+                {"$setOnInsert": d},
+                upsert=True
+            )
+            for d in docs
+        ]
+        res = col.bulk_write(ops, ordered=False)
+        total_upserted += res.upserted_count
 
-        cursor = candles[-1][6] + 1
-        time.sleep(0.2)
+        last_open_time = docs[-1]["open_time"]
+        next_start = last_open_time + 1
 
-    print(f"✅ Ingestion terminée : {total} documents insérés")
+        print(f"batch fetched={len(docs)} upserted={res.upserted_count} next_start={next_start}")
 
+        if len(raw) < 1000:
+            break
+
+        cursor_start = next_start
+        time.sleep(0.25)
+
+    print(f"✅ DONE symbol={symbol} interval={interval} fetched={total_fetched} upserted={total_upserted}")
 
 if __name__ == "__main__":
-    ingest()
-    
+    # 2025-01-01T00:00:00Z en ms
+    ingest_history("BTCUSDT", "1h", start_time_ms=1735689600000)

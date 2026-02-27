@@ -10,7 +10,7 @@ load_dotenv(dotenv_path=ENV_PATH, override=True)
 def _clean(v: str, default: str) -> str:
     if v is None:
         return default
-    return str(v).strip().replace("\ufeff", "")  # enlève BOM si présent
+    return str(v).strip().replace("\ufeff", "")  
 
 def get_pg_connection():
     host = _clean(os.getenv("PG_HOST"), "127.0.0.1")
@@ -19,7 +19,6 @@ def get_pg_connection():
     user = _clean(os.getenv("PG_USER"), "admin")
     password = _clean(os.getenv("PG_PASSWORD"), "admin")
 
-    # Debug (montre les caractères invisibles)
     print("PG_HOST repr:", repr(host))
     print("PG_PORT repr:", repr(str(port)))
     print("PG_DB   repr:", repr(dbname))
