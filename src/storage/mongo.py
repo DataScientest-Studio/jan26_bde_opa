@@ -42,6 +42,11 @@ def test_connection():
     except Exception as e:
         print("Erreur connexion MongoDB ❌", e)
 
+def insert_data(collection, data):
+    if isinstance(data, list):
+        collection.insert_many(data)
+    else:
+        collection.insert_one(data)
 
 if __name__ == "__main__":
     test_connection()
