@@ -1,7 +1,5 @@
 from datetime import datetime, timezone
-from typing import List, Tuple
-
-from pymongo import ReturnDocument
+from typing import List, Tuple, Optional, Dict, Any
 
 from src.storage.mongo import get_database
 from src.storage.pg import get_pg_connection
@@ -19,101 +17,128 @@ ON CONFLICT (symbol, interval, open_time) DO NOTHING;
 """
 
 
-def claim_next_batch(db):
-    """
-    Récupère le prochain batch pending et le passe en processing (atomique).
-    """
-    return db.etl_batch_logs.find_one_and_update(
-        {"status": "pending"},
-        {"$set": {"status": "processing", "started_at": datetime.now(timezone.utc)}},
-        sort=[("created_at", 1)],
-        return_document=ReturnDocument.AFTER,
-    )
+def get_now():
+    return datetime.now(timezone.utc)
 
 
-def run_batch():
+def run_batch(symbol: Optional[str] = None, interval: Optional[str] = None):
+
+    # Connexions
     db = get_database()
     pg_conn = get_pg_connection()
-    cursor = pg_conn.cursor()
 
-    batch = claim_next_batch(db)
-
-    if not batch:
-        print("No pending batch found.")
-        cursor.close()
-        pg_conn.close()
-        return
-
-    batch_id = batch["batch_id"]
-    symbol = batch["symbol"]
-    interval = batch["interval"]
-
-    print(f"Processing batch: {batch_id} ({symbol} / {interval})")
-
+    started_at = get_now()
     counts = {"read": 0, "attempted_insert": 0}
 
+    # Filtre Mongo
+    mongo_filter: Dict[str, Any] = {}
+
+    if symbol is not None:
+        mongo_filter["symbol"] = symbol
+
+    if interval is not None:
+        mongo_filter["interval"] = interval
+
+    # Log debut
+    log_document = {
+        "symbol": symbol if symbol else "ALL",
+        "interval": interval if interval else "ALL",
+        "status": "processing",
+        "started_at": started_at,
+        "finished_at": None,
+        "counts": counts,
+        "error": None,
+    }
+
+    log_id = db["etl_batch_logs"].insert_one(log_document).inserted_id
+
     try:
-        raw_docs = db["raw_binance_klines"].find({"symbol": symbol, "interval": interval})
+        total = db["raw_binance_klines"].count_documents(mongo_filter)
+
+        print("Filtre Mongo :", mongo_filter)
+        print("Nombre de documents trouves :", total)
+
+        if total == 0:
+            db["etl_batch_logs"].update_one(
+                {"_id": log_id},
+                {"$set": {"status": "no_data", "finished_at": get_now()}}
+            )
+
+            print("Aucune donnee a traiter")
+            return
+
+        cursor = pg_conn.cursor()
+
+        raw_docs = db["raw_binance_klines"].find(mongo_filter).sort("open_time", 1)
 
         rows: List[Tuple] = []
 
         for doc in raw_docs:
             counts["read"] += 1
+
             row = preprocess_raw_kline(doc)
 
             rows.append(
                 (
                     row["symbol"],
                     row["interval"],
-                    row["open_time"],
-                    row["open"],
-                    row["high"],
-                    row["low"],
-                    row["close"],
-                    row["volume"],
-                    row["close_time"],
+                    int(row["open_time"]),
+                    float(row["open"]),
+                    float(row["high"]),
+                    float(row["low"]),
+                    float(row["close"]),
+                    float(row["volume"]),
+                    int(row["close_time"]),
                     row.get("number_of_trades"),
                     row.get("ingested_at"),
                 )
             )
 
-        if rows:
+            if len(rows) >= 1000:
+                cursor.executemany(INSERT_SQL, rows)
+                pg_conn.commit()
+                counts["attempted_insert"] += len(rows)
+                rows = []
+
+        # Dernier envoi
+        if len(rows) > 0:
             cursor.executemany(INSERT_SQL, rows)
             pg_conn.commit()
-            counts["attempted_insert"] = len(rows)
+            counts["attempted_insert"] += len(rows)
 
-        db.etl_batch_logs.update_one(
-            {"batch_id": batch_id},
+        cursor.close()
+
+        db["etl_batch_logs"].update_one(
+            {"_id": log_id},
             {
                 "$set": {
                     "status": "processed",
-                    "finished_at": datetime.now(timezone.utc),
+                    "finished_at": get_now(),
                     "counts": counts,
                 }
             },
         )
 
-        print("Batch processed successfully.")
-        print("Counts:", counts)
+        print("ETL termine")
+        print("Documents lus :", counts["read"])
+        print("Insertions tentees :", counts["attempted_insert"])
 
     except Exception as e:
         pg_conn.rollback()
 
-        db.etl_batch_logs.update_one(
-            {"batch_id": batch_id},
+        db["etl_batch_logs"].update_one(
+            {"_id": log_id},
             {
                 "$set": {
                     "status": "error",
-                    "finished_at": datetime.now(timezone.utc),
+                    "finished_at": get_now(),
                     "error": str(e),
-                    "counts": counts,
                 }
             },
         )
 
-        print(f"Batch failed: {e}")
+        print("Erreur ETL :", e)
         raise
 
     finally:
-        cursor.close()
         pg_conn.close()
