@@ -1,13 +1,13 @@
 import os
 from pathlib import Path
 from dotenv import load_dotenv
-import psycopg2
+import psycopg
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 ENV_PATH = PROJECT_ROOT / ".env"
 load_dotenv(dotenv_path=ENV_PATH, override=True)
 
-def _clean(v: str, default: str) -> str:
+def _clean(v: str | None, default: str) -> str:
     if v is None:
         return default
     return str(v).strip().replace("\ufeff", "")  
@@ -25,7 +25,7 @@ def get_pg_connection():
     print("PG_USER repr:", repr(user))
     print("PG_PASS repr:", repr(password))
 
-    return psycopg2.connect(
+    return psycopg.connect(
         host=host,
         port=port,
         dbname=dbname,

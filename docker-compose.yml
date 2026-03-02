@@ -1,23 +1,38 @@
+version: "3.9"
+
 services:
-  
   mongodb:
-    image : mongo:7.0
+    image: mongo:7.0
     container_name: opa_mongo
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
-    volumes: 
+    volumes:
       - mongo_data:/data/db
     ports:
-      - 27017:27017
+      - "27017:27017"
+
+  postgres:
+    image: postgres:15
+    container_name: opa_postgres
+    environment:
+      POSTGRES_USER: ${PG_USER}
+      POSTGRES_PASSWORD: ${PG_PASSWORD}
+      POSTGRES_DB: ${PG_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
 
   app:
     build: .
     container_name: opa_app
     depends_on:
       - mongodb
+      - postgres
     env_file:
       - .env
 
 volumes:
   mongo_data:
+  postgres_data:
