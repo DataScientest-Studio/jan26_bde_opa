@@ -1,8 +1,17 @@
+from pydantic import BaseModel
+from src.models.predict_model import load_model, predict_one
 from fastapi import FastAPI
 from src.storage.pg import get_pg_connection
 
 app = FastAPI()
+model = load_model()
 
+class PredictionRequest(BaseModel):
+    open: float
+    high: float
+    low: float
+    close: float
+    volume: float
 
 @app.get("/health")
 def health():
@@ -105,3 +114,10 @@ def get_stats(symbol: str, interval: str):
         "min_low": row[3],
         "max_high": row[4]
     }
+
+@app.post("/predict")
+def predict(data: PredictionRequest):
+
+    result = predict_one(model, data.model_dump())
+
+    return result
