@@ -1,0 +1,21 @@
+services:
+  airflow:
+    image: apache/airflow:2.9.3
+    container_name: airflow
+
+    ports:
+      - "8080:8080"
+
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./:/opt/airflow/project
+
+    environment:
+      AIRFLOW__CORE__EXECUTOR: SequentialExecutor
+      AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+
+    command: >
+      bash -c "
+      pip install --no-cache-dir pandas scikit-learn joblib requests &&
+      airflow standalone
+      "

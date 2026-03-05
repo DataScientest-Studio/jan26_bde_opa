@@ -2,8 +2,7 @@ import requests
 import pandas as pd
 
 
-# 1 RÉCUPÉRATION API BINANCE
-
+# RÉCUPÉRER LES DONNÉES DE L'API BINANCE
 
 url = "https://api.binance.com/api/v3/klines"
 
@@ -15,13 +14,15 @@ params = {
 
 response = requests.get(url, params=params)
 
+# vérifier si l'API répond correctement
 if response.status_code != 200:
     print("Erreur API :", response.status_code)
     exit()
 
 data = response.json()
 
-# 2 TRANSFORMATION DATAFRAME
+
+# TRANSFORMER LES DONNÉES EN DATAFRAME
 
 columns = [
     "open_time",
@@ -40,56 +41,76 @@ columns = [
 
 df = pd.DataFrame(data, columns=columns)
 
-# Conversion types numériques
+
+#  NETTOYER ET TRANSFORMER LES DONNÉES
+
+# convertir les timestamps en date
+df["open_time"] = pd.to_datetime(df["open_time"], unit="ms")
+df["close_time"] = pd.to_datetime(df["close_time"], unit="ms")
+
+# supprimer la colonne inutile
+df = df.drop(columns=["ignore"])
+
+# convertir certaines colonnes en nombres
 for col in ["open", "high", "low", "close", "volume"]:
     df[col] = df[col].astype(float)
 
-# Conversion timestamp
-df["date"] = pd.to_datetime(df["open_time"], unit="ms")
+# utiliser open_time comme date principale
+df["date"] = df["open_time"]
 
-# Trier chronologiquement
+# trier les données par date
 df = df.sort_values("date")
 
 
-# 3 STRATÉGIE (5 JOURS)
+#  CRÉER UNE STRATÉGIE SIMPLE (PRÉDICTION SUR 5 JOURS)
 
+horizon = 120      # 5 jours = 120 heures
+threshold = 0.02   # variation de 2 %
 
-# 5 jours = 5 × 24 heures
-horizon = 120
-threshold = 0.02
-
+# calcul du rendement futur
 df["future_return"] = (df["close"].shift(-horizon) - df["close"]) / df["close"]
 
-# Création labels
+# création des labels
 labels = []
 
 for value in df["future_return"]:
+    
     if value > threshold:
         labels.append("Acheter")
+        
     elif value < -threshold:
         labels.append("Vendre")
+        
     else:
         labels.append("Attendre")
 
 df["label"] = labels
 
-# Supprimer NaN
+# supprimer les lignes avec valeurs manquantes
 df = df.dropna()
 
-# 4 NETTOYAGE FINAL
+
+#  CRÉER LE DATASET FINAL
+
+df = df[[
+    "date",
+    "open",
+    "high",
+    "low",
+    "close",
+    "volume",
+    "future_return",
+    "label"
+]]
 
 
-df = df[["date", "open", "high", "low", "close", "volume", "future_return", "label"]]
-
-
-# 5 SAUVEGARDE
-
-
+# sauvegarder le dataset
 df.to_csv("dataset_with_labels.csv", index=False)
 
+
+# afficher quelques informations
 print("Dataset créé avec succès")
 print("Nombre de lignes :", len(df))
 print("Distribution des classes :")
 print(df["label"].value_counts())
 print(df.head())
-print(df.isnull().sum())

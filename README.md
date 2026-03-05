@@ -100,12 +100,46 @@ Machine Learning
 (RandomForest)
      │
      ▼
+
 Prediction
 UP / DOWN
-## ⚙️ Lancer le projet
 
 ### 1️⃣ Lancer les conteneurs Docker
 
 ```bash
 docker compose up -d
+
+## 📊 Dashboard Streamlit
+
+Le dashboard du projet CryptoBot a été développé avec Streamlit afin de visualiser les données du pipeline Data Engineering.
+
+### Architecture du pipeline
+
+```
+Binance API
+   ↓
+MongoDB
+   ↓
+ETL Python
+   ↓
+PostgreSQL
+   ↓
+FastAPI
+   ↓
+Streamlit
+```
+
+### Lancer le dashboard
+
+```bash
+streamlit run src/src/ingestion/dashboard/dashboard.py
+```
+
+Le dashboard est accessible via :
+
+http://localhost:8501
+
+### Capture du dashboard
+
+![CryptoBot Dashboard](images/dashboard_streamlit.png)
 
