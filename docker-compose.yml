@@ -1,18 +1,43 @@
+version: "3.9"
+
 services:
-  api:
-    build:
-      context: .
-      dockerfile: Dockerfile.api
+  mongodb:
+    image: mongo:7.0
+    container_name: opa_mongo
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+    volumes:
+      - mongo_data:/data/db
+    ports:
+      - "27017:27017"
+
+  postgres:
+    image: postgres:15
+    container_name: opa_postgres
+    environment:
+      POSTGRES_USER: ${PG_USER}
+      POSTGRES_PASSWORD: ${PG_PASSWORD}
+      POSTGRES_DB: ${PG_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+
+  app:
+    build: .
+    container_name: opa_app
+    depends_on:
+      - mongodb
+      - postgres
+    env_file:
+      - .env
+    command: uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload
     ports:
       - "8000:8000"
+    volumes:
+      - .:/app
 
-  dashboard:
-    build:
-      context: .
-      dockerfile: Dockerfile.dashboard
-    environment:
-      - API_URL=http://api:8000
-    ports:
-      - "8501:8501"
-    depends_on:
-      - api
+volumes:
+  mongo_data:
+  postgres_data:
