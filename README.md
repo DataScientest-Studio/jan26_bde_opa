@@ -75,7 +75,33 @@ reports/
 └── 07_machine_learning.md
 
 ---
-
+## 📊 Data Pipeline
+```text
+Binance API
+     │
+     ▼
+MongoDB
+(raw_binance_klines)
+     │
+     ▼
+ETL Python
+(preprocess + transformation)
+     │
+     ▼
+PostgreSQL
+(table candles)
+     │
+     ▼
+FastAPI
+(API REST)
+     │
+     ▼
+Machine Learning
+(RandomForest)
+     │
+     ▼
+Prediction
+UP / DOWN
 ## ⚙️ Lancer le projet
 
 ### 1️⃣ Lancer les conteneurs Docker
