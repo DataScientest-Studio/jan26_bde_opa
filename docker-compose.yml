@@ -38,6 +38,37 @@ services:
     volumes:
       - .:/app
 
+  streamlit:
+    build: .
+    container_name: opa_streamlit
+    depends_on:
+      - app
+    env_file:
+      - .env
+    command: streamlit run dashboard/app.py --server.address 0.0.0.0 --server.port 8501
+    ports:
+      - "8501:8501"
+    volumes:
+      - .:/app
+
+  airflow:
+    image: apache/airflow:2.10.5
+    container_name: opa_airflow
+    depends_on:
+      - postgres
+    environment:
+      AIRFLOW__CORE__EXECUTOR: SequentialExecutor
+      AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "True"
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${PG_USER}:${PG_PASSWORD}@postgres:5432/${PG_DB}
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - .:/opt/airflow/src
+    ports:
+      - "8080:8080"
+    command: standalone
+
 volumes:
   mongo_data:
   postgres_data:
+
