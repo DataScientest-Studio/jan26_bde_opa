@@ -86,11 +86,16 @@ for value in df["future_return"]:
 
 df["label"] = labels
 
+# ajout de variables explicatives
+df["return_1h"] = df["close"].pct_change().fillna(0)
+df["ma_24"] = df["close"].rolling(24, min_periods=1).mean()
+df["volatility_24"] = (df["return_1h"].rolling(24, min_periods=1).std().fillna(0))
+
 # supprimer les lignes avec valeurs manquantes
+df = df.drop("future_return",axis=1)
 df = df.dropna()
 
-
-#  CRÉER LE DATASET FINAL
+# dataset final
 
 df = df[[
     "date",
@@ -99,14 +104,14 @@ df = df[[
     "low",
     "close",
     "volume",
-    "future_return",
+    "return_1h",
+    "ma_24",
+    "volatility_24",
     "label"
 ]]
 
-
 # sauvegarder le dataset
 df.to_csv("dataset_with_labels.csv", index=False)
-
 
 # afficher quelques informations
 print("Dataset créé avec succès")
