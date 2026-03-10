@@ -7,7 +7,7 @@ pkill -f streamlit 2>/dev/null
 sleep 2
 
 echo "🚀 Lancement de l'API FastAPI (port 8000)..."
-python -m uvicorn api.main:app --reload &
+python -m uvicorn src.api.main:app --reload &
 
 sleep 3
 
