@@ -18,4 +18,3 @@ services:
       bash -c "
       pip install --no-cache-dir pandas scikit-learn joblib requests &&
       airflow standalone
-      "

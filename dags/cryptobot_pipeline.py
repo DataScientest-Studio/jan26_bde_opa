@@ -11,12 +11,12 @@ with DAG(
 
     build_features = BashOperator(
         task_id="build_features",
-        bash_command="python src/features/build_features.py"
+        bash_command="python /opt/airflow/src/features/build_features.py"
     )
 
     train_model = BashOperator(
         task_id="train_model",
-        bash_command="python src/models/train_model.py"
+        bash_command="python /opt/airflow/src/models/train_model.py"
     )
 
     build_features >> train_model

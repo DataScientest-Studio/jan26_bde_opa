@@ -38,4 +38,4 @@ Dans notre projet, le DAG **cryptobot_pipeline** orchestre les étapes suivantes
 1. build_features → création du dataset Machine Learning
 2. train_model → entraînement du modèle RandomForest
 
-Cette automatisation permet d’exécuter le pipeline complet sans intervention manuelle.
+Cette automatisation permet d’exécuter le pipeline complet sans intervention manuelle.docker ps
