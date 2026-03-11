@@ -1,17 +1,16 @@
-## Déploiement avec Docker
+## Docker
 
-Afin de garantir la reproductibilité du projet, l'application est conteneurisée avec Docker.
+Le projet utilise Docker pour lancer tous les services automatiquement.
 
-Le fichier `docker-compose.yml` permet de lancer l'ensemble des services nécessaires au fonctionnement du pipeline.
+Les services utilisés sont :
 
-Les services déployés sont :
-
-* MongoDB : stockage des données brutes
-* PostgreSQL : data warehouse
-* FastAPI : exposition de l'API
+* MongoDB : stockage des données
+* PostgreSQL : base de données du projet
+* FastAPI : API pour accéder aux données
 * Streamlit : dashboard de visualisation
-* Airflow : orchestration et automatisation du pipeline
+* Airflow : automatisation du pipeline
 
-L'ensemble de l'application peut être lancé avec la commande :
+Le fichier `docker-compose.yml` permet de démarrer toute l'application avec une seule commande :
 
-docker compose up --build
+docker compose up
+

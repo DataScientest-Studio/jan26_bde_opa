@@ -9,7 +9,7 @@ API_URL = os.getenv("API_URL", "http://127.0.0.1:8000")
 st.set_page_config(page_title="BTCUSDT Dashboard", layout="wide")
 st.title(" Dashboard Finance — BTCUSDT (Binance)")
 
-# 1) Récupérer les stats
+# Récupérer les stats
 stats = requests.get(f"{API_URL}/stats").json()
 
 col1, col2, col3, col4 = st.columns(4)
@@ -20,7 +20,7 @@ col4.metric("Average Volume", f"{stats.get('average_volume', 'N/A')}")
 
 st.divider()
 
-#  2) Récupérer les données pour graphiques 
+# Récupérer les données pour graphiques 
 chart_data = requests.get(f"{API_URL}/charts").json()
 if isinstance(chart_data, dict):
     chart_data = [chart_data]
