@@ -44,7 +44,7 @@ def test_connection():
 
 def insert_data(collection, data):
     if isinstance(data, list):
-        collection.insert_many(data)
+        collection.insert_many(data, ordered=False)
     else:
         collection.insert_one(data)
 
