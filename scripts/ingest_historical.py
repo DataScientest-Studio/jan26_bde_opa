@@ -48,7 +48,7 @@ def ingest_history(symbol: str, interval: str, start_time_ms: int, end_time_ms: 
         cursor_start = next_start
         time.sleep(0.25)
 
-    print(f"✅ DONE symbol={symbol} interval={interval} fetched={total_fetched} upserted={total_upserted}")
+    print(f"DONE symbol={symbol} interval={interval} fetched={total_fetched} upserted={total_upserted}")
 
 if __name__ == "__main__":
     # 2025-01-01T00:00:00Z en ms

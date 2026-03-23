@@ -74,3 +74,7 @@ y_pred = search.predict(X_test)
 
 print(pd.crosstab(y_test, y_pred, rownames=['Réel'], colnames=['Prédit']))
 print(classification_report(y_test, y_pred))
+
+import joblib
+joblib.dump(search.best_estimator_, "model_ML_NBC.pkl")
+joblib.dump(le, "label_encoder.pkl")

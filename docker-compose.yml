@@ -45,7 +45,7 @@ services:
       - .env
     command: bash /app/docker-entrypoint-app.sh
     ports:
-      - "8000:8000"
+      - "8001:8000"
     volumes:
       - .:/app
       - pipeline_logs:/app/logs
@@ -57,7 +57,7 @@ services:
       - app
     env_file:
       - .env
-    command: streamlit run dashboard/app.py --server.address 0.0.0.0 --server.port 8501
+    command: python -m streamlit run dashboard/app.py --server.address 0.0.0.0 --server.port 8501
     ports:
       - "8501:8501"
     volumes:
