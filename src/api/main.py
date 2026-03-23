@@ -1,3 +1,4 @@
+import pandas as pd
 from pydantic import BaseModel
 from src.models.predict_model import load_model, predict_one
 from fastapi import FastAPI
@@ -84,18 +85,17 @@ def get_candles(symbol: str, interval: str, limit: int = 100):
 
 
 @app.get("/stats")
-def get_stats(symbol: str, interval: str):
+def get_stats(symbol: str = "BTCUSDT", interval: str = "1h"):
 
     conn = get_pg_connection()
     cursor = conn.cursor()
 
     cursor.execute("""
         SELECT
-            COUNT(*) as n,
-            MIN(open_time),
-            MAX(open_time),
-            MIN(low),
-            MAX(high)
+            MAX(close) as last_price,
+            MAX(high)  as max_price,
+            MIN(low)   as min_price,
+            AVG(volume) as average_volume
         FROM candles
         WHERE symbol = %s AND interval = %s
     """, (symbol, interval))
@@ -106,14 +106,39 @@ def get_stats(symbol: str, interval: str):
     conn.close()
 
     return {
-        "symbol": symbol,
-        "interval": interval,
-        "count": row[0],
-        "min_open_time": row[1],
-        "max_open_time": row[2],
-        "min_low": row[3],
-        "max_high": row[4]
+        "last_price": round(row[0], 2) if row[0] else None,
+        "max_price":  round(row[1], 2) if row[1] else None,
+        "min_price":  round(row[2], 2) if row[2] else None,
+        "average_volume": round(row[3], 2) if row[3] else None,
     }
+
+
+@app.get("/charts")
+def get_charts(symbol: str = "BTCUSDT", interval: str = "1h", limit: int = 200):
+
+    conn = get_pg_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT open_time, close
+        FROM candles
+        WHERE symbol = %s AND interval = %s
+        ORDER BY open_time DESC
+        LIMIT %s
+    """, (symbol, interval, limit))
+
+    rows = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
+    return [
+        {
+            "date": pd.Timestamp(r[0], unit="ms").isoformat(),
+            "close": r[1],
+        }
+        for r in reversed(rows)
+    ]
 
 @app.post("/predict")
 def predict(data: PredictionRequest):
