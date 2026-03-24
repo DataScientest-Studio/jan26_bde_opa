@@ -1,8 +1,12 @@
 from fastapi import FastAPI, Query, HTTPException
+from pydantic import BaseModel
 import requests
 import pandas as pd
 
+from predict_model import load_model, predict_one
+
 app = FastAPI(title="CryptoBot API")
+model = load_model()
 
 BINANCE_URL = "https://api.binance.com/api/v3/klines"
 
@@ -20,6 +24,14 @@ AVAILABLE_INTERVALS = ["1m", "5m", "15m", "1h", "4h", "1d"]
 AVAILABLE_PERIODS = ["1D", "1W", "1M", "1Y"]
 
 
+class PredictionRequest(BaseModel):
+    open: float
+    high: float
+    low: float
+    close: float
+    volume: float
+
+
 def period_to_limit(interval: str, period: str) -> int:
     mapping = {
         "1m": {"1D": 300, "1W": 1000, "1M": 1000, "1Y": 1000},
@@ -27,7 +39,7 @@ def period_to_limit(interval: str, period: str) -> int:
         "15m": {"1D": 96, "1W": 672, "1M": 1000, "1Y": 1000},
         "1h": {"1D": 24, "1W": 168, "1M": 720, "1Y": 1000},
         "4h": {"1D": 6, "1W": 42, "1M": 180, "1Y": 1000},
-        "1d": {"1D": 1, "1W": 7, "1M": 30, "1Y": 365},
+        "1d": {"1D": 1, "1W": 7, "1M": 30, "1Y": 365}
     }
     return mapping[interval][period]
 
@@ -35,8 +47,10 @@ def period_to_limit(interval: str, period: str) -> int:
 def get_binance_data(symbol: str, interval: str, period: str) -> pd.DataFrame:
     if symbol not in AVAILABLE_CRYPTOS:
         raise HTTPException(status_code=400, detail="Crypto non supportée")
+
     if interval not in AVAILABLE_INTERVALS:
         raise HTTPException(status_code=400, detail="Intervalle non supporté")
+
     if period not in AVAILABLE_PERIODS:
         raise HTTPException(status_code=400, detail="Période non supportée")
 
@@ -55,13 +69,17 @@ def get_binance_data(symbol: str, interval: str, period: str) -> pd.DataFrame:
     if not isinstance(data, list) or len(data) == 0:
         raise HTTPException(status_code=500, detail="Aucune donnée reçue depuis Binance")
 
-    df = pd.DataFrame(data, columns=[
-        "open_time", "open", "high", "low", "close", "volume",
-        "close_time", "quote_asset_volume", "number_of_trades",
-        "taker_buy_base_asset_volume", "taker_buy_quote_asset_volume", "ignore"
-    ])
+    df = pd.DataFrame(
+        data,
+        columns=[
+            "open_time", "open", "high", "low", "close", "volume",
+            "close_time", "quote_asset_volume", "number_of_trades",
+            "taker_buy_base_asset_volume", "taker_buy_quote_asset_volume", "ignore"
+        ]
+    )
 
     df["date"] = pd.to_datetime(df["open_time"], unit="ms")
+
     for col in ["open", "high", "low", "close", "volume"]:
         df[col] = df[col].astype(float)
 
@@ -71,10 +89,8 @@ def get_binance_data(symbol: str, interval: str, period: str) -> pd.DataFrame:
 def add_indicators(df: pd.DataFrame) -> pd.DataFrame:
     result = df.copy()
 
-    # EMA 20
     result["ema_20"] = result["close"].ewm(span=20, adjust=False).mean()
 
-    # RSI 14
     delta = result["close"].diff()
     gain = delta.clip(lower=0)
     loss = -delta.clip(upper=0)
@@ -92,12 +108,11 @@ def add_indicators(df: pd.DataFrame) -> pd.DataFrame:
 def compute_signal(df: pd.DataFrame) -> dict:
     df = add_indicators(df)
 
-    last_close = float(df["close"].iloc[-1])
-    last_ema = float(df["ema_20"].iloc[-1])
-    last_rsi = float(df["rsi"].iloc[-1])
+    last_close = df["close"].iloc[-1]
+    last_ema = df["ema_20"].iloc[-1]
+    last_rsi = df["rsi"].iloc[-1]
 
-    # Logique simple et débutante
-    if last_close > last_ema and 50 <= last_rsi < 70:
+    if last_close > last_ema and 50 < last_rsi < 70:
         signal = "BUY"
         reason = "Prix au-dessus de l’EMA et RSI haussier sans surachat"
     elif last_close < last_ema and 30 < last_rsi < 50:
@@ -141,7 +156,7 @@ def stats(
         "last_price": float(df["close"].iloc[-1]),
         "max_price": float(df["high"].max()),
         "min_price": float(df["low"].min()),
-        "avg_volume": float(df["volume"].mean())
+        "average_volume": float(df["volume"].mean())
     }
 
 
@@ -168,7 +183,22 @@ def signals(
     df = get_binance_data(symbol, interval, period)
     return compute_signal(df)
 
-    chart_df = df[["open_time", "close"]].copy()
-    chart_df.columns = ["date", "close"]
 
-    return chart_df.to_dict(orient="records")
+@app.post("/predict")
+def predict(data: PredictionRequest):
+    try:
+        features = [
+            {
+                "open": data.open,
+                "high": data.high,
+                "low": data.low,
+                "close": data.close,
+                "volume": data.volume
+            }
+        ]
+
+        result = predict_one(model, features)
+        return result
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erreur prédiction : {str(e)}")
