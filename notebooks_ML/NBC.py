@@ -9,7 +9,7 @@ from sklearn.model_selection import RandomizedSearchCV
 from scipy.stats import loguniform
 
 # creation du dataset
-df = pd.read_csv("../dataset_with_labels.csv")
+df = pd.read_csv("dataset_with_labels.csv")
 
 # changer la colonne date
 df["date"] = pd.to_datetime(df["date"])

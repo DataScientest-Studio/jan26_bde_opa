@@ -14,7 +14,7 @@ from sklearn.model_selection import TimeSeriesSplit
 from scipy.stats import randint
 
 # creation du dataset
-df = pd.read_csv("../dataset_with_labels.csv")
+df = pd.read_csv("dataset_with_labels.csv")
 #print(df.info())
 
 # changer la colonne date

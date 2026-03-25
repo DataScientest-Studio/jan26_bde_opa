@@ -22,10 +22,10 @@ class BinanceExtractor:
         response = requests.get(self.BASE_URL, params=params)
 
         if response.status_code == 200:
-            print("✅ Données récupérées avec succès")
+            print("Données récupérées avec succès")
             return response.json()
         else:
-            print("❌ Erreur API :", response.status_code)
+            print("Erreur API :", response.status_code)
             return None
 
     def save_to_json(self, data):
@@ -35,7 +35,7 @@ class BinanceExtractor:
         with open(filename, "w") as f:
             json.dump(data, f)
 
-        print(f"📁 Fichier sauvegardé : {filename}")
+        print(f"Fichier sauvegardé : {filename}")
 
 
 if __name__ == "__main__":
