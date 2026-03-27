@@ -294,4 +294,27 @@ with tab_ml:
     st.divider()
 
     # explication du modèle de ML choisit
-    st.subheader("Pourquoi Naive Bayes Classifier ?")
+    st.subheader("Comprendre le modèle ?")
+    st.markdown("""
+    ##### Objectif
+    Cette application prédit un signal de trading (Acheter, Vendre ou Attendre) à partir des données du marché.
+
+    ##### Modèles testés
+    - Naive Bayes
+    - K-Nearest Neighbors (KNN)
+    - Random Forest
+
+    ##### Modèle retenu
+    Le modèle **Naive Bayes** a été sélectionné car il offre les meilleures performances :
+    - Accuracy : 0.73
+    - F1-score : 0.74
+
+    ##### Fonctionnement
+    Le modèle utilise plusieurs indicateurs :
+    - variation du prix
+    - tendance (moyenne mobile)
+    - volatilité
+
+    ##### Limites
+    Les prédictions ne garantissent pas les résultats futurs. Le marché reste incertain.
+    """)
