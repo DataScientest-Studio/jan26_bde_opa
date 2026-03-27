@@ -20,6 +20,8 @@ ON CONFLICT (symbol, interval, open_time) DO NOTHING;
 def get_now():
     return datetime.now(timezone.utc)
 
+def ms_to_dt(ms: int):
+    return datetime.fromtimestamp(ms / 1000, tz=timezone.utc)
 
 def run_batch(symbol: Optional[str] = None, interval: Optional[str] = None):
 
@@ -82,15 +84,15 @@ def run_batch(symbol: Optional[str] = None, interval: Optional[str] = None):
                 (
                     row["symbol"],
                     row["interval"],
-                    int(row["open_time"]),
+                    ms_to_dt(int(row["open_time"])),
                     float(row["open"]),
                     float(row["high"]),
                     float(row["low"]),
                     float(row["close"]),
                     float(row["volume"]),
-                    int(row["close_time"]),
+                    ms_to_dt(int(row["close_time"])),
                     row.get("number_of_trades"),
-                    row.get("ingested_at"),
+                    ms_to_dt(int(row["ingested_at"])) if row.get("ingested_at") is not None else None,
                 )
             )
 
@@ -142,3 +144,6 @@ def run_batch(symbol: Optional[str] = None, interval: Optional[str] = None):
 
     finally:
         pg_conn.close()
+
+if __name__ == "__main__":
+    run_batch()        

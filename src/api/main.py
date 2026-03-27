@@ -34,7 +34,7 @@ def fetch_ml_features(symbol: str, interval: str, period: str):
     cursor = conn.cursor()
     limit = period_to_limit(period)
     cursor.execute("""
-        SELECT open_time, close, return_1h, ma_24, volatility_24
+        SELECT open_time, close, return_1h, ma_24, volatility_24, ema_20, rsi
         FROM ml_features
         WHERE symbol=%s AND interval=%s
         ORDER BY open_time DESC
@@ -44,9 +44,9 @@ def fetch_ml_features(symbol: str, interval: str, period: str):
     conn.close()
     if not rows:
         raise HTTPException(status_code=404, detail="ML features non trouvées")
-    df = pd.DataFrame(rows, columns=["open_time", "close", "return_1h", "ma_24", "volatility_24"])
+    df = pd.DataFrame(rows, columns=["open_time", "close", "return_1h", "ma_24", "volatility_24", "ema_20", "rsi"])
     df = df.sort_values("open_time")
-    df["date"] = pd.to_datetime(df["open_time"], unit="ms")
+    df["date"] = pd.to_datetime(df["open_time"])
     return df
 
 def fetch_candles(symbol: str, interval: str, period: str):
@@ -67,7 +67,7 @@ def fetch_candles(symbol: str, interval: str, period: str):
         raise HTTPException(status_code=404, detail="Candles non trouvées")
     df = pd.DataFrame(rows, columns=["open_time","open","high","low","close","volume"])
     df = df.sort_values("open_time")
-    df["date"] = pd.to_datetime(df["open_time"], unit="ms")
+    df["date"] = pd.to_datetime(df["open_time"])
     return df
 
 @app.get("/")
@@ -94,11 +94,7 @@ def charts(symbol: str = Query("BTCUSDT"), interval: str = Query("1h"), period: 
     df_ml = fetch_ml_features(symbol, interval, period)
 
     # Merge ML features sur candles pour le Streamlit ML tab
-    df = pd.merge(df_candles, df_ml, on="date", how="left")
-    # Ajouter EMA et RSI depuis dashboard si besoin
-    dashboard = fetch_dashboard(symbol, interval)
-    df["ema_20"] = dashboard["ema_20"]
-    df["rsi"] = dashboard["rsi"]
+    df = pd.merge(df_candles,df_ml[["date", "return_1h", "ma_24", "volatility_24", "ema_20", "rsi"]],on="date",how="left")
 
     df = df.fillna(0)
     df["date"] = df["date"].astype(str)

@@ -32,7 +32,7 @@ def ensure_raw_klines_indexes(db):
 def test_connection():
     try:
         db = get_database()
-        print("MongoDB connecté ✅")
+        print("MongoDB connecté")
         print("DB :", db.name)
 
         col = ensure_raw_klines_indexes(db)
@@ -40,7 +40,7 @@ def test_connection():
         print("Indexes raw_binance_klines :", list(col.index_information().keys()))
 
     except Exception as e:
-        print("Erreur connexion MongoDB ❌", e)
+        print("Erreur connexion MongoDB", e)
 
 def insert_data(collection, data):
     if isinstance(data, list):

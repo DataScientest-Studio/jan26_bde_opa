@@ -76,11 +76,11 @@ with tab_dashboard:
 
     # Appels API 
     try:
-        stats = requests.get(f"{API_URL}/stats", params=params, timeout=15).json()
-        chart_data = requests.get(f"{API_URL}/charts", params=params, timeout=15).json()
-        signal_data = requests.get(f"{API_URL}/signals", params=params, timeout=15).json()
+        stats = requests.get(f"{API_URL}/stats", params=params).json()
+        chart_data = requests.get(f"{API_URL}/charts", params=params).json()
+        signal_data = requests.get(f"{API_URL}/signals", params=params).json()
     except Exception:
-        st.error("Impossible de joindre l’API. Vérifie que FastAPI tourne sur le port 8000.")
+        st.error("API non accessible")
         st.stop()
 
     # Stats 
@@ -102,10 +102,10 @@ with tab_dashboard:
     else:
         st.warning(f"Signal : {signal} | {signal_data['reason']}")
 
-    signal_col1, signal_col2, signal_col3 = st.columns(3)
-    signal_col1.metric("EMA 20", signal_data["ema_20"])
-    signal_col2.metric("RSI", signal_data["rsi"])
-    signal_col3.metric("Close", signal_data["close"])
+    colA, colB, colC = st.columns(3)
+    colA.metric("EMA 20", signal_data["ema_20"])
+    colB.metric("RSI", signal_data["rsi"])
+    colC.metric("Close", signal_data["close"])
 
     st.divider()
 
@@ -124,39 +124,50 @@ with tab_dashboard:
         df,
         x="date",
         y="close",
-        title=f"{crypto} - Prix de clôture"
     )
 
+    # Prix (close)
+    fig_price.data[0].name = "Prix (close)"
+    fig_price.data[0].line.color = "#3b82f6"
+    fig_price.data[0].line.width = 2
+    fig_price.data[0].showlegend = True  
+    
+    #  EMA (Tendance moyenne)
     fig_price.add_scatter(
         x=df["date"],
         y=df["ema_20"],
         mode="lines",
-        name="EMA 20"
+        name="EMA 20 (tendance)",
+        line=dict(color="#ef4444", width=2)
+    )
+
+    # Légende à droite
+    fig_price.update_layout(
+        legend=dict(
+            orientation="v",
+            y=1,
+            x=1.02
+        ),
+        plot_bgcolor="white",
+        paper_bgcolor="white"
     )
 
     st.plotly_chart(fig_price, use_container_width=True)
+    
 
-    # Graphique RSI
-    st.subheader(" RSI")
+    # RSI
+    st.subheader("RSI")
 
-    fig_rsi = px.line(
-        df,
-        x="date",
-        y="rsi",
-        title="RSI"
-    )
+    fig_rsi = px.line(df, x="date", y="rsi")
 
     fig_rsi.add_hline(y=70, line_dash="dash")
     fig_rsi.add_hline(y=30, line_dash="dash")
 
     st.plotly_chart(fig_rsi, use_container_width=True)
 
-    #  Tableau 
+    # Table
     st.subheader("Dernières données")
-    st.dataframe(
-        df[["date", "close", "ema_20", "rsi"]].tail(50),
-        use_container_width=True
-    )
+    st.dataframe(df.tail(50))
 
 # onglet ML
 with tab_ml:
