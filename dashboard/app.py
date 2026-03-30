@@ -2,8 +2,10 @@ import streamlit as st
 import requests
 import pandas as pd
 import plotly.express as px
+import joblib
+from pathlib import Path
 
-API_URL = "http://127.0.0.1:8001"
+API_URL = "http://opa_app:8000"
 
 st.set_page_config(
     page_title="CryptoBot Dashboard",
@@ -59,89 +61,94 @@ params = {
     "period": period
 }
 
-# API CALL
-try:
-    stats = requests.get(f"{API_URL}/stats", params=params).json()
-    chart_data = requests.get(f"{API_URL}/charts", params=params).json()
-    signal_data = requests.get(f"{API_URL}/signals", params=params).json()
-except:
-    st.error("API non accessible")
-    st.stop()
+#onglets
+tab_dashboard, tab_ml = st.tabs(["Dashboard", "Machine Learning"])
 
-# METRICS
-col1, col2, col3, col4 = st.columns(4)
-col1.metric("Last Price", round(stats["last_price"], 2))
-col2.metric("Max Price", round(stats["max_price"], 2))
-col3.metric("Min Price", round(stats["min_price"], 2))
-col4.metric("Average Volume", round(stats["avg_volume"], 2))
+#onglet dashboard
+with tab_dashboard:
+    # API CALL
+    try:
+        stats = requests.get(f"{API_URL}/stats", params=params).json()
+        chart_data = requests.get(f"{API_URL}/charts", params=params).json()
+        signal_data = requests.get(f"{API_URL}/signals", params=params).json()
+    except:
+        st.error("API non accessible")
+        st.stop()
 
-st.divider()
+    # METRICS
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("Last Price", round(stats["last_price"], 2))
+    col2.metric("Max Price", round(stats["max_price"], 2))
+    col3.metric("Min Price", round(stats["min_price"], 2))
+    col4.metric("Average Volume", round(stats["avg_volume"], 2))
 
-# SIGNAL
-signal = signal_data["signal"]
+    st.divider()
 
-if signal == "BUY":
-    st.success(f"Signal : {signal} | {signal_data['reason']}")
-elif signal == "SELL":
-    st.error(f"Signal : {signal} | {signal_data['reason']}")
-else:
-    st.warning(f"Signal : {signal} | {signal_data['reason']}")
+    # SIGNAL
+    signal = signal_data["signal"]
 
-colA, colB, colC = st.columns(3)
-colA.metric("EMA 20", signal_data["ema_20"])
-colB.metric("RSI", signal_data["rsi"])
-colC.metric("Close", signal_data["close"])
+    if signal == "BUY":
+        st.success(f"Signal : {signal} | {signal_data['reason']}")
+    elif signal == "SELL":
+        st.error(f"Signal : {signal} | {signal_data['reason']}")
+    else:
+        st.warning(f"Signal : {signal} | {signal_data['reason']}")
 
-st.divider()
+    colA, colB, colC = st.columns(3)
+    colA.metric("EMA 20", signal_data["ema_20"])
+    colB.metric("RSI", signal_data["rsi"])
+    colC.metric("Close", signal_data["close"])
 
-# DATA
-df = pd.DataFrame(chart_data)
-df["date"] = pd.to_datetime(df["date"])
+    st.divider()
 
-# GRAPH PRIX
-st.subheader(f"Prix de {crypto}")
+    # DATA
+    df = pd.DataFrame(chart_data)
+    df["date"] = pd.to_datetime(df["date"])
 
-fig_price = px.line(
-    df,
-    x="date",
-    y="close"
-)
+    # GRAPH PRIX
+    st.subheader(f"Prix de {crypto}")
 
-# COURBE de prix 
-fig_price.data[0].name = "Prix (close)"
-fig_price.data[0].line.color = "#3b82f6"
-fig_price.data[0].line.width = 2
+    fig_price = px.line(
+        df,
+        x="date",
+        y="close"
+    )
 
-# EMA 
-fig_price.add_scatter(
-    x=df["date"],
-    y=df["ema_20"],
-    mode="lines",
-    name="EMA 20",
-    line=dict(color="#ef4444", width=2)
-)
+    # COURBE de prix 
+    fig_price.data[0].name = "Prix (close)"
+    fig_price.data[0].line.color = "#3b82f6"
+    fig_price.data[0].line.width = 2
 
-fig_price.update_layout(
-    plot_bgcolor="white",
-    paper_bgcolor="white",
-    legend=dict(x=1.02, y=1)
-)
+    # EMA 
+    fig_price.add_scatter(
+        x=df["date"],
+        y=df["ema_20"],
+        mode="lines",
+        name="EMA 20",
+        line=dict(color="#ef4444", width=2)
+    )
 
-st.plotly_chart(fig_price, use_container_width=True)
+    fig_price.update_layout(
+        plot_bgcolor="white",
+        paper_bgcolor="white",
+        legend=dict(x=1.02, y=1)
+    )
 
-# RSI
-st.subheader("RSI")
+    st.plotly_chart(fig_price, use_container_width=True)
 
-fig_rsi = px.line(df, x="date", y="rsi")
+    # RSI
+    st.subheader("RSI")
 
-fig_rsi.add_hline(y=70, line_dash="dash")
-fig_rsi.add_hline(y=30, line_dash="dash")
+    fig_rsi = px.line(df, x="date", y="rsi")
 
-st.plotly_chart(fig_rsi, use_container_width=True)
+    fig_rsi.add_hline(y=70, line_dash="dash")
+    fig_rsi.add_hline(y=30, line_dash="dash")
 
-# TABLE
-st.subheader("Dernières données")
-st.dataframe(df.tail(50))
+    st.plotly_chart(fig_rsi, use_container_width=True)
+
+    # TABLE
+    st.subheader("Dernières données")
+    st.dataframe(df.tail(50))
 
 # onglet ML
 with tab_ml:
