@@ -7,11 +7,11 @@ WORKDIR /app
 # Copier les dépendances
 COPY requirements.txt .
 
-# Installer les dépendances
+# Installer les dépendances système (cron pour le service scheduler)
+RUN apt-get update && apt-get install -y cron && rm -rf /var/lib/apt/lists/*
+
+# Installer les dépendances python
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copier tout le projet
 COPY . .
-
-# Commande par défaut au lancement
-CMD ["python", "src/storage/mongo.py"]
