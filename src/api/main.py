@@ -1,94 +1,74 @@
 from fastapi import FastAPI, Query, HTTPException
-import requests
 import pandas as pd
+from src.storage.pg import get_pg_connection
 
 app = FastAPI(title="CryptoBot API")
 
-BINANCE_URL = "https://api.binance.com/api/v3/klines"
-
-AVAILABLE_CRYPTOS = [
-    "BTCUSDT", "ETHUSDT", "BNBUSDT",
-    "SOLUSDT", "ADAUSDT", "XRPUSDT", "DOGEUSDT"
-]
-
+AVAILABLE_CRYPTOS = ["BTCUSDT", "ETHUSDT", "BNBUSDT","SOLUSDT", "ADAUSDT", "XRPUSDT", "DOGEUSDT"]
 AVAILABLE_INTERVALS = ["1m", "5m", "15m", "1h", "4h", "1d"]
 AVAILABLE_PERIODS = ["1D", "1W", "1M", "1Y"]
 
 
-# Conversion période → nombre de points
-def period_to_limit(interval: str, period: str) -> int:
-    mapping = {
-        "1m": {"1D": 300, "1W": 1000, "1M": 1000, "1Y": 1000},
-        "5m": {"1D": 288, "1W": 1000, "1M": 1000, "1Y": 1000},
-        "15m": {"1D": 96, "1W": 672, "1M": 1000, "1Y": 1000},
-        "1h": {"1D": 24, "1W": 168, "1M": 720, "1Y": 1000},
-        "4h": {"1D": 6, "1W": 42, "1M": 180, "1Y": 1000},
-        "1d": {"1D": 1, "1W": 7, "1M": 30, "1Y": 365},
-    }
+def period_to_limit(period: str) -> int:
+    mapping = {"1D": 24, "1W": 168, "1M": 720, "1Y": 8760}
+    return mapping.get(period, 24)
 
-    if interval not in mapping or period not in mapping[interval]:
-        raise HTTPException(status_code=400, detail="Combinaison interval/période invalide")
+def fetch_dashboard(symbol: str, interval: str):
+    """Récupère les données du dashboard depuis dashboard_metrics"""
+    conn = get_pg_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT last_price, max_price, min_price, avg_volume, ema_20, rsi
+        FROM dashboard_metrics
+        WHERE symbol=%s AND interval=%s
+    """, (symbol, interval))
+    row = cursor.fetchone()
+    conn.close()
+    if not row:
+        raise HTTPException(status_code=404, detail="Dashboard metrics non trouvées")
+    keys = ["last_price", "max_price", "min_price", "avg_volume", "ema_20", "rsi"]
+    return dict(zip(keys, row))
 
-    return mapping[interval][period]
+def fetch_ml_features(symbol: str, interval: str, period: str):
+    """Récupère les données ML depuis ml_features"""
+    conn = get_pg_connection()
+    cursor = conn.cursor()
+    limit = period_to_limit(period)
+    cursor.execute("""
+        SELECT open_time, close, return_1h, ma_24, volatility_24, ema_20, rsi
+        FROM ml_features
+        WHERE symbol=%s AND interval=%s
+        ORDER BY open_time DESC
+        LIMIT %s
+    """, (symbol, interval, limit))
+    rows = cursor.fetchall()
+    conn.close()
+    if not rows:
+        raise HTTPException(status_code=404, detail="ML features non trouvées")
+    df = pd.DataFrame(rows, columns=["open_time", "close", "return_1h", "ma_24", "volatility_24", "ema_20", "rsi"])
+    df = df.sort_values("open_time")
+    df["date"] = pd.to_datetime(df["open_time"])
+    return df
 
-
-# Récupération données Binance
-def get_binance_data(symbol: str, interval: str, period: str) -> pd.DataFrame:
-    if symbol not in AVAILABLE_CRYPTOS:
-        raise HTTPException(status_code=400, detail="Crypto non supportée")
-    if interval not in AVAILABLE_INTERVALS:
-        raise HTTPException(status_code=400, detail="Intervalle non supporté")
-    if period not in AVAILABLE_PERIODS:
-        raise HTTPException(status_code=400, detail="Période non supportée")
-
-    limit = period_to_limit(interval, period)
-
-    params = {
-        "symbol": symbol,
-        "interval": interval,
-        "limit": limit
-    }
-
-    response = requests.get(BINANCE_URL, params=params, timeout=15)
-    response.raise_for_status()
-    data = response.json()
-
-    if not data:
-        raise HTTPException(status_code=500, detail="Aucune donnée Binance")
-
-    df = pd.DataFrame(data, columns=[
-        "open_time", "open", "high", "low", "close", "volume",
-        "close_time", "qav", "trades", "tbav", "tqav", "ignore"
-    ])
-
-    df["date"] = pd.to_datetime(df["open_time"], unit="ms")
-
-    for col in ["open", "high", "low", "close", "volume"]:
-        df[col] = df[col].astype(float)
-
-    return df[["date", "open", "high", "low", "close", "volume"]]
-
-
-# INDICATEURS (EMA + RSI) 
-def add_indicators(df: pd.DataFrame) -> pd.DataFrame:
-    df = df.copy()
-
-    # EMA 20
-    df["ema_20"] = df["close"].ewm(span=20, adjust=False).mean()
-
-    # RSI 14
-    delta = df["close"].diff()
-
-    gain = delta.clip(lower=0)
-    loss = -delta.clip(upper=0)
-
-    avg_gain = gain.rolling(window=14).mean()
-    avg_loss = loss.rolling(window=14).mean()
-
-    rs = avg_gain / avg_loss.replace(0, 1e-10)
-
-    df["rsi"] = 100 - (100 / (1 + rs))
-    df["rsi"] = df["rsi"].fillna(50)
+def fetch_candles(symbol: str, interval: str, period: str):
+    """Récupère l’historique complet depuis candles (graphique)"""
+    conn = get_pg_connection()
+    cursor = conn.cursor()
+    limit = period_to_limit(period)
+    cursor.execute("""
+        SELECT open_time, open, high, low, close, volume
+        FROM candles
+        WHERE symbol=%s AND interval=%s
+        ORDER BY open_time DESC
+        LIMIT %s
+    """, (symbol, interval, limit))
+    rows = cursor.fetchall()
+    conn.close()
+    if not rows:
+        raise HTTPException(status_code=404, detail="Candles non trouvées")
+    df = pd.DataFrame(rows, columns=["open_time","open","high","low","close","volume"])
+    df = df.sort_values("open_time")
+    df["date"] = pd.to_datetime(df["open_time"])
 
     return df
 
@@ -101,60 +81,47 @@ def home():
 
 # STATS
 @app.get("/stats")
-def stats(
-    symbol: str = Query("BTCUSDT"),
-    interval: str = Query("1h"),
-    period: str = Query("1D")
-):
-    df = get_binance_data(symbol, interval, period)
-
-    return {
-        "last_price": float(df["close"].iloc[-1]),
-        "max_price": float(df["high"].max()),
-        "min_price": float(df["low"].min()),
-        "avg_volume": float(df["volume"].mean())
-    }
+def stats(symbol: str = Query("BTCUSDT"), interval: str = Query("1h")):
+    """Pour l’onglet Dashboard"""
+    dashboard = fetch_dashboard(symbol, interval)
+    dashboard["symbol"] = symbol
+    dashboard["interval"] = interval
+    return dashboard
 
 
 # CHARTS
 @app.get("/charts")
-def charts(
-    symbol: str = Query("BTCUSDT"),
-    interval: str = Query("1h"),
-    period: str = Query("1D")
-):
-    df = add_indicators(get_binance_data(symbol, interval, period))
+def charts(symbol: str = Query("BTCUSDT"), interval: str = Query("1h"), period: str = Query("1D")):
+    """Pour les graphes et le ML (historique complet + indicateurs)"""
+    df_candles = fetch_candles(symbol, interval, period)
+    df_ml = fetch_ml_features(symbol, interval, period)
+    # Merge ML features sur candles pour le Streamlit ML tab
+    df = pd.merge(df_candles,df_ml[["date", "return_1h", "ma_24", "volatility_24", "ema_20", "rsi"]],on="date",how="left")
+    df = df.fillna(0)
     df["date"] = df["date"].astype(str)
     return df.to_dict(orient="records")
 
-
 # SIGNAL
-@app.get("/signals")
-def signals(
-    symbol: str = Query("BTCUSDT"),
-    interval: str = Query("1h"),
-    period: str = Query("1D")
-):
-    df = add_indicators(get_binance_data(symbol, interval, period))
+def signals(symbol: str = Query("BTCUSDT"), interval: str = Query("1h")):
+    """Signal basé sur EMA/RSI pour le dashboard"""
+    dashboard = fetch_dashboard(symbol, interval)
+    last_close = dashboard["last_price"]
+    last_ema = dashboard["ema_20"]
+    last_rsi = dashboard["rsi"]
 
-    last_close = df["close"].iloc[-1]
-    ema = df["ema_20"].iloc[-1]
-    rsi = df["rsi"].iloc[-1]
-
-    if last_close > ema and rsi > 50:
+    if last_close > last_ema and 50 <= last_rsi < 70:
         signal = "BUY"
-        reason = "Tendance haussière"
-    elif last_close < ema and rsi < 50:
+        reason = "Prix au-dessus de l’EMA et RSI haussier"
+    elif last_close < last_ema and 30 < last_rsi < 50:
         signal = "SELL"
-        reason = "Tendance baissière"
+        reason = "Prix en-dessous de l’EMA et RSI baissier"
     else:
         signal = "HOLD"
-        reason = "Marché neutre"
-
+        reason = "Conditions intermédiaires ou marché incertain"
     return {
         "signal": signal,
-        "close": round(last_close, 2),
-        "ema_20": round(ema, 2),
-        "rsi": round(rsi, 2),
+        "close": round(last_close,2),
+        "ema_20": round(last_ema,2),
+        "rsi": round(last_rsi,2),
         "reason": reason
     }
