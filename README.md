@@ -1,145 +1,158 @@
-# 🚀 OPA – CryptoBot
+# OPA – CryptoBot
 
-# 🎯 Objectif du projet
+# Présentation du projet
 
-Construire un pipeline data complet :
+CryptoBot est une application de data engineering et d’analyse de données crypto qui collecte, transforme et visualise des données de marché provenant de l’API Binance.
 
-1. Collecte des données depuis l'API Binance
-2. Stockage brut dans MongoDB
-3. Transformation des données via un ETL Python
-4. Chargement dans PostgreSQL (data warehouse)
-5. Exposition des données via une API FastAPI
-6. Prédiction du marché avec un modèle de Machine Learning
+Le projet met en œuvre une architecture complète comprenant :
 
----
+ingestion de données via API
+stockage NoSQL
+pipeline ETL
+base analytique SQL
+API REST
+dashboard interactif
+modèle de Machine Learning pour générer des signaux de trading.
 
-## 🏗️ Architecture
-
-Le pipeline de données suit les étapes suivantes :
-
-Binance API  
-⬇  
-MongoDB (collection : raw_binance_klines) — stockage brut des données  
-⬇  
-ETL Python — nettoyage et transformation  
-⬇  
-PostgreSQL (table : candles) — stockage structuré  
-⬇  
-FastAPI — API REST  
-⬇  
-Machine Learning — prédiction UP / DOWN
+L’objectif est de construire une architecture de pipeline de données complète et modulaire, proche des pratiques utilisées en production.
 
 ---
 
-## 🗄️ Technologies utilisées
+## Architecture
 
+Pipeline global :
+
+Binance API
+      ↓
+Ingestion Python
+      ↓
+MongoDB (données brutes)
+      ↓
+Pipeline ETL
+      ↓
+PostgreSQL (données analytiques)
+      ↓
+API FastAPI
+      ↓
+Dashboard Streamlit
+
+Les différents services sont orchestrés avec Docker et Docker Compose.
+
+![Architecture Diagram](images/Diagramme%20OPA.png)
+---
+
+## Fonctionnalités
+
+Le projet permet de :
+
+collecter des données crypto depuis l’API Binance
+stocker les données brutes dans MongoDB
+transformer les données avec un pipeline ETL
+calculer des indicateurs techniques (EMA, RSI, volatilité)
+exposer les données via une API REST
+visualiser les données dans un dashboard interactif
+générer des signaux de trading via un modèle de Machine Learning.
+
+---
+
+## Technologies utilisées
+
+Data Engineering
 - Python
-- MongoDB
-- PostgreSQL
-- Docker & Docker Compose
-- FastAPI
-- Uvicorn
 - Pandas
-- Scikit-learn
-- Joblib
+- Numpy
 
----
+Stockage
+- MongoDB (données brutes)
+- PostgreSQL (données transformées)
 
-## 📂 Structure du projet
-src/
-├── ingestion/ → récupération des données Binance
-├── processors/ → transformation ETL
-├── storage/ → stockage MongoDB / PostgreSQL
-└── api/ → API FastAPI
+Backend
+- FastAPI
 
-scripts/
-├── ingest_historical.py → ingestion historique Binance
-└── run_etl.py → pipeline ETL Mongo → Postgres
+Visualisation
+- Streamlit
+- Plotly
 
-notebooks/
-└── training_model.ipynb → entraînement du modèle ML
-
-models/
-└── model.pkl → modèle entraîné
-
-predict_model.py
-→ script de prédiction utilisant le modèle
-
-reports/
-├── 01_architecture.md
-├── 02_ingestion_binance.md
-├── 03_mongodb_storage.md
-├── 04_etl_pipeline.md
-├── 05_postgres_datawarehouse.md
-├── 06_api_fastapi.md
-└── 07_machine_learning.md
-
----
-## 📊 Data Pipeline
-```text
-Binance API
-     │
-     ▼
-MongoDB
-(raw_binance_klines)
-     │
-     ▼
-ETL Python
-(preprocess + transformation)
-     │
-     ▼
-PostgreSQL
-(table candles)
-     │
-     ▼
-FastAPI
-(API REST)
-     │
-     ▼
 Machine Learning
-(RandomForest)
-     │
-     ▼
+- Scikit-learn
+- Naive Bayes Classifier
 
-Prediction
-UP / DOWN
+Infrastructure
+- Docker
+- Docker Compose
+- Cron Jobs
 
-### 1️⃣ Lancer les conteneurs Docker
+---
 
-```bash
-docker compose up -d
+## Structure du projet
+project/
+│
+├── dashboard/
+│   ├── app.py                # visualisation avec streamlit
+│   ├── label_encoder.pkl     # décodeur du label
+│   └── model_ML_NBC.pkl      # modèle ML entraîné
+│
+├── src/
+│   ├── api/                  # API FastAPI
+│   ├── etl/                  # pipeline ETL
+│   ├── storage/              # connexions DB
+│   ├── processors/           # transformations
+│   └── collectors/           # récupération données binance
+│
+├── scripts/
+│   ├── ingest_historical.py  # définition de fonction utile pour l'ingestion
+│   ├── update_latest.py      # ingestion de nouvelles données
+│   ├── repair_gaps.py        # ingestion de données pour combler les éventuels "trous" dans nos base de données
+│   ├── first_ingestion.py    # ingestion des toutes premières données
+│   └── run_etl.py            # lancer les scripts prévu pour l'etl
+│
+├── docker-compose.yml
+├── docker-entrypoint-app.sh
+├── docker-entrypoint-scheduler.sh
+├── crontab.docker
+├── Dockerfile
+├── Dockerfile.api
+├── Dockerfile.dashboard
+└── README.md
 
-## 📊 Dashboard Streamlit
+---
+## Lancer le projet
 
-Le dashboard du projet CryptoBot a été développé avec Streamlit afin de visualiser les données du pipeline Data Engineering.
+Prérequis
+- Docker
+- Docker Compose
 
-### Architecture du pipeline
+Lancer l’application
+docker compose up --build
 
-```
-Binance API
-   ↓
-MongoDB
-   ↓
-ETL Python
-   ↓
-PostgreSQL
-   ↓
-FastAPI
-   ↓
-Streamlit
-```
+Accéder aux services
 
-### Lancer le dashboard
+API FastAPI
 
-```bash
-streamlit run src/src/ingestion/dashboard/dashboard.py
-```
+http://localhost:8000/docs
 
-Le dashboard est accessible via :
+Dashboard Streamlit
 
 http://localhost:8501
 
-### Capture du dashboard
+---
 
-![CryptoBot Dashboard](images/dashboard_streamlit.png)
+## Machine Learning
+Un modèle de classification Naive Bayes est utilisé pour générer des signaux de trading :
+- BUY
+- SELL
+- HOLD
 
+Les features utilisées incluent :
+- variation du prix
+- moyenne mobile
+- volatilité
+
+Le modèle est chargé dans le dashboard via joblib.
+
+---
+
+## Auteurs
+
+Projet réalisé dans le cadre du cours de Data Engineering.
+Albert / Coline / Deborah / Jihane
