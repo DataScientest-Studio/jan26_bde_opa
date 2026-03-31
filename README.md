@@ -67,35 +67,35 @@ Infrastructure
 ---
 
 ## Structure du projet
-project/
-│
-├── dashboard/
-│   ├── app.py                # visualisation avec streamlit
-│   ├── label_encoder.pkl     # décodeur du label
-│   └── model_ML_NBC.pkl      # modèle ML entraîné
-│
-├── src/
-│   ├── api/                  # API FastAPI
-│   ├── etl/                  # pipeline ETL
-│   ├── storage/              # connexions DB
-│   ├── processors/           # transformations
-│   └── collectors/           # récupération données binance
-│
-├── scripts/
-│   ├── ingest_historical.py  # définition de fonction utile pour l'ingestion
-│   ├── update_latest.py      # ingestion de nouvelles données
-│   ├── repair_gaps.py        # ingestion de données pour combler les éventuels "trous" dans nos base de données
-│   ├── first_ingestion.py    # ingestion des toutes premières données
-│   └── run_etl.py            # lancer les scripts prévu pour l'etl
-│
-├── docker-compose.yml
-├── docker-entrypoint-app.sh
-├── docker-entrypoint-scheduler.sh
-├── crontab.docker
-├── Dockerfile
-├── Dockerfile.api
-├── Dockerfile.dashboard
-└── README.md
+     project/
+     │
+     ├── dashboard/
+     │   ├── app.py                # visualisation avec streamlit
+     │   ├── label_encoder.pkl     # décodeur du label
+     │   └── model_ML_NBC.pkl      # modèle ML entraîné
+     │
+     ├── src/
+     │   ├── api/                  # API FastAPI
+     │   ├── etl/                  # pipeline ETL
+     │   ├── storage/              # connexions DB
+     │   ├── processors/           # transformations
+     │   └── collectors/           # récupération données binance
+     │
+     ├── scripts/
+     │   ├── ingest_historical.py  # définition de fonction utile pour l'ingestion
+     │   ├── update_latest.py      # ingestion de nouvelles données
+     │   ├── repair_gaps.py        # ingestion de données pour combler les éventuels "trous" dans nos base de données
+     │   ├── first_ingestion.py    # ingestion des toutes premières données
+     │   └── run_etl.py            # lancer les scripts prévu pour l'etl
+     │
+     ├── docker-compose.yml
+     ├── docker-entrypoint-app.sh
+     ├── docker-entrypoint-scheduler.sh
+     ├── crontab.docker
+     ├── Dockerfile
+     ├── Dockerfile.api
+     ├── Dockerfile.dashboard
+     └── README.md
 
 ---
 ## Lancer le projet
