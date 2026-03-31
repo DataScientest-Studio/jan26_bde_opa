@@ -7,6 +7,9 @@ echo "Starting cron scheduler..."
 
 mkdir -p /app/logs
 
+echo "[$(date -u '+%Y-%m-%d %H:%M:%S UTC')] Bootstrap repair gap..." >> /app/logs/bootstrap.log
+python3 /app/scripts/repair_gaps.py >> /app/logs/bootstrap.log 2>&1 || true
+
 echo "[$(date -u '+%Y-%m-%d %H:%M:%S UTC')] Bootstrap ingestion..." >> /app/logs/bootstrap.log
 python3 /app/scripts/update_latest.py >> /app/logs/bootstrap.log 2>&1 || true
 

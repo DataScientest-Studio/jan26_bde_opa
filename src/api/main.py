@@ -102,6 +102,7 @@ def charts(symbol: str = Query("BTCUSDT"), interval: str = Query("1h"), period: 
     return df.to_dict(orient="records")
 
 # SIGNAL
+@app.get("/signals")
 def signals(symbol: str = Query("BTCUSDT"), interval: str = Query("1h")):
     """Signal basé sur EMA/RSI pour le dashboard"""
     dashboard = fetch_dashboard(symbol, interval)
