@@ -20,24 +20,6 @@ L’objectif est de construire une architecture de pipeline de données complèt
 
 ## Architecture
 
-Pipeline global :
-
-Binance API
-      ↓
-Ingestion Python
-      ↓
-MongoDB (données brutes)
-      ↓
-Pipeline ETL
-      ↓
-PostgreSQL (données analytiques)
-      ↓
-API FastAPI
-      ↓
-Dashboard Streamlit
-
-Les différents services sont orchestrés avec Docker et Docker Compose.
-
 ![Architecture Diagram](images/Diagramme%20OPA.png)
 ---
 
