@@ -20,7 +20,7 @@ L’objectif est de construire une architecture de pipeline de données complèt
 
 ## Architecture
 
-![Architecture Diagram](images/Diagramme%20OPA.png)
+![Architecture Diagram](images/Architecture.png)
 ---
 
 ## Fonctionnalités
