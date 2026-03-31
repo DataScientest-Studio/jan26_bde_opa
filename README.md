@@ -27,13 +27,13 @@ L’objectif est de construire une architecture de pipeline de données complèt
 
 Le projet permet de :
 
-collecter des données crypto depuis l’API Binance
-stocker les données brutes dans MongoDB
-transformer les données avec un pipeline ETL
-calculer des indicateurs techniques (EMA, RSI, volatilité)
-exposer les données via une API REST
-visualiser les données dans un dashboard interactif
-générer des signaux de trading via un modèle de Machine Learning.
+- collecter des données crypto depuis l’API Binance
+- stocker les données brutes dans MongoDB
+- transformer les données avec un pipeline ETL
+- calculer des indicateurs techniques (EMA, RSI, volatilité)
+- exposer les données via une API REST
+- visualiser les données dans un dashboard interactif
+- générer des signaux de trading via un modèle de Machine Learning.
 
 ---
 
