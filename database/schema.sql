@@ -5,15 +5,15 @@ DROP TABLE IF EXISTS candles;
 CREATE TABLE candles (
     symbol TEXT NOT NULL,
     interval TEXT NOT NULL,
-    open_time BIGINT NOT NULL,
+    open_time TIMESTAMP WITH TIME ZONE NOT NULL,
     open DOUBLE PRECISION NOT NULL,
     high DOUBLE PRECISION NOT NULL,
     low DOUBLE PRECISION NOT NULL,
     close DOUBLE PRECISION NOT NULL,
     volume DOUBLE PRECISION NOT NULL,
-    close_time BIGINT NOT NULL,
+    close_time TIMESTAMP WITH TIME ZONE NOT NULL,
     number_of_trades INTEGER,
-    ingested_at BIGINT,
+    ingested_at TIMESTAMP WITH TIME ZONE,
     PRIMARY KEY (symbol, interval, open_time)
 );
 
@@ -32,7 +32,7 @@ CREATE TABLE dashboard_metrics (
 CREATE TABLE ml_features (
     symbol TEXT NOT NULL,
     interval TEXT NOT NULL,
-    open_time BIGINT NOT NULL,
+    open_time TIMESTAMP WITH TIME ZONE NOT NULL,
     close DOUBLE PRECISION,
     return_1h DOUBLE PRECISION,
     ma_24 DOUBLE PRECISION,
