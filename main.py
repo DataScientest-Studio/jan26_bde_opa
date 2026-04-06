@@ -1,8 +1,23 @@
-from fastapi import FastAPI, Query, HTTPException
+from fastapi import FastAPI, Query, HTTPException, Request
 import requests
 import pandas as pd
+from prometheus_client import Counter, generate_latest, CONTENT_TYPE_LATEST
+from starlette.responses import Response
 
 app = FastAPI(title="CryptoBot API")
+
+# Compteur Prometheus
+REQUEST_COUNT = Counter("request_count", "Total API Requests")
+
+@app.middleware("http")
+async def count_requests(request: Request, call_next):
+    REQUEST_COUNT.inc()
+    response = await call_next(request)
+    return response
+
+@app.get("/metrics")
+def metrics():
+    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 BINANCE_URL = "https://api.binance.com/api/v3/klines"
 
@@ -18,7 +33,6 @@ AVAILABLE_CRYPTOS = [
 
 AVAILABLE_INTERVALS = ["1m", "5m", "15m", "1h", "4h", "1d"]
 AVAILABLE_PERIODS = ["1D", "1W", "1M", "1Y"]
-
 
 def period_to_limit(interval: str, period: str) -> int:
     mapping = {
@@ -96,7 +110,6 @@ def compute_signal(df: pd.DataFrame) -> dict:
     last_ema = float(df["ema_20"].iloc[-1])
     last_rsi = float(df["rsi"].iloc[-1])
 
-    # Logique simple et débutante
     if last_close > last_ema and 50 <= last_rsi < 70:
         signal = "BUY"
         reason = "Prix au-dessus de l’EMA et RSI haussier sans surachat"
@@ -167,8 +180,3 @@ def signals(
 ):
     df = get_binance_data(symbol, interval, period)
     return compute_signal(df)
-
-    chart_df = df[["open_time", "close"]].copy()
-    chart_df.columns = ["date", "close"]
-
-    return chart_df.to_dict(orient="records")
